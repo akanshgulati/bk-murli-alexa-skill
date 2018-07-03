@@ -1,0 +1,21 @@
+{
+  "alexaSkill": {
+    "nlu": "alexa",
+    "manifest": {
+      "permissions": [
+        {
+          "name": "read::alexa:device:all:address:country_and_postal_code"
+        }
+      ],
+      "apis": {
+        "custom": {
+          "interfaces": [
+            {
+              "type": "AUDIO_PLAYER"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

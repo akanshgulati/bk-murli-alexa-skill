@@ -1,0 +1,46 @@
+{
+    "invocation": "jovo beta",
+    "intents": [
+        {
+            "name": "PlayIntent",
+            "phrases": [
+                "play b.k. murli for {date}",
+                "Start the song",
+                "for {date}"
+            ]
+        }
+    ],
+    "alexa": {
+        "interactionModel": {
+            "languageModel": {
+                "intents": [
+                    {
+                        "name": "AMAZON.CancelIntent",
+                        "samples": [
+                        ]
+                    },
+                    {
+                        "name": "AMAZON.HelpIntent",
+                        "samples": [
+                        ]
+                    },
+                    {
+                        "name": "AMAZON.StopIntent",
+                        "samples": [
+                        ]
+                    },
+                    {
+                        "name": "AMAZON.ResumeIntent",
+                        "samples": [
+                        ]
+                    },
+                    {
+                        "name": "AMAZON.PauseIntent",
+                        "samples": [
+                        ]
+                    }
+                ]
+            }
+        }
+    }
+}
