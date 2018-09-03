@@ -1,12 +1,13 @@
 {
-  "name": "jovo-sample-voice-app-nodejs",
+  "name": "bk-murli-alexa-skill",
   "version": "0.0.1",
-  "description": "A sample voice app that works with the Jovo framework",
+  "description": "A voice app for Alexa to play daily murli",
   "main": "index.js",
   "dependencies": {
+    "alexa-verifier-middleware": "^1.0.1",
+    "axios": "^0.18.0",
     "jovo-framework": "^1.0.0",
-    "moment": "^2.22.2",
-    "axios": "^0.18.0"
+    "moment": "^2.22.2"
   },
   "devDependencies": {},
   "scripts": {

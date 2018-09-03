@@ -12,9 +12,9 @@ const Languages = require('./language.json');
 const config = {
     logging: true,
     intentMap: {
+        'AMAZON.StopIntent': 'StopIntent',
         'AMAZON.PauseIntent': 'PauseIntent',
-        'AMAZON.ResumeIntent': 'ResumeIntent',
-        'AMAZON.StopIntent': 'StopIntent'
+        'AMAZON.ResumeIntent': 'ResumeIntent'
     },
 };
 
@@ -52,7 +52,6 @@ function getTimeZoneId(countryCode, zipcode) {
     let city = '';
     let state = '';
     let timeZoneId = '';
-    const MAPS_KEY = 'asdasd';
 
     return axios.get(`https://maps.googleapis.com/maps/api/geocode/json?address=${countryCode},${zipcode}`)
     .then((response) => {
@@ -73,13 +72,15 @@ function getLanguageLocale(language) {
 
 app.setHandler({
     'LAUNCH': function() {
+        console.log("ENTERED HERE");
         this.toIntent('PlayIntent');
     },
     'PlayIntent': function(date, language, seconds) {
-       // console.log("Date", date, "language", language, "seconds", seconds);
+        console.log("ENTERED HERE TOO");
         let self = this;
         const languageLocale = language && getLanguageLocale(language.value);
         this.user().getCountryAndPostalCode().then((data) => {
+            console.log("data", data.countryCode);
             getTimeZoneId(data.countryCode, data.postalCode).then(timezone => {
                 let params;
                 const _date = date && date.value || moment().utcOffset(timezone).format('YYYY-MM-DD');
@@ -94,12 +95,16 @@ app.setHandler({
                 const offsetSeconds = seconds && seconds.value ? seconds.value * 1000 : 0;
 
                 let speech = '';
+                speech += language && language.value && !languageLocale
+                    ? `Sorry, We currently don't support ${language.value} language <break time="0.5s"/>, `
+                    : '';
+                speech += `Playing murli for ${calendarDate}`;
                 speech += offsetSeconds ? `from ${offsetSeconds} seconds ` : '';
                 speech += languageLocale ? `in ${language.value} language.` : '';
 
                 self.alexaSkill().audioPlayer().setOffsetInMilliseconds(offsetSeconds)
                 .play(self.user().data.songToPlay, 'token')
-                .tell(`Playing murli for ${calendarDate} ` + speech);
+                .tell(speech);
             });
         }).catch((error) => {
             console.log(error);
@@ -110,14 +115,17 @@ app.setHandler({
             }
         });
     },
-
+    'StopIntent': function() {
+        this.alexaSkill().audioPlayer().stop();
+        this.user().data.offset = 0;
+        this.tell('Stopped!');
+    },
     'PauseIntent': function() {
         this.alexaSkill().audioPlayer().stop();
-
         // Save offset to database
         this.user().data.offset = this.alexaSkill().audioPlayer().getOffsetInMilliseconds();
 
-        this.tell('Paused!');
+        this.tell('Murli is paused, you can resume it!');
     },
 
     'ResumeIntent': function() {
@@ -125,14 +133,15 @@ app.setHandler({
             .play(this.user().data.songToPlay, 'token')
             .tell('Resuming the murli!');
     },
-
-    'StopIntent': function() {
-        this.alexaSkill().audioPlayer().stop();
-        this.user().data.offset = 0;
-        this.tell('Stopped!');
-        this.endSession();
+    Unhandled() {
+        const currentPlayBackOffsetTime = this.alexaSkill().audioPlayer().getOffsetInMilliseconds();
+        if (!currentPlayBackOffsetTime) {
+            this.tell('Something went wrong, please try again');
+        }else {
+            this.tell('Something went wrong, stopping murli, please try again');
+            this.toIntent('StopIntent');
+        }
     },
-
 
     'AUDIOPLAYER': {
         'AudioPlayer.PlaybackStarted': function() {
