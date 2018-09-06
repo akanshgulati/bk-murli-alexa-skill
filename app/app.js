@@ -74,6 +74,10 @@ function getTimeZoneId(countryCode, zipcode) {
 }
 
 function getLanguageLocale(language) {
+    if (!language) {
+        return ''
+    }
+    language = language.toLowerCase();
     return Languages[language];
 }
 
@@ -112,53 +116,70 @@ function getDate(date, user) {
     });
 }
 
+const getSeconds = (sec) => {
+    if (!sec || !sec.value) {
+        return 0;
+    }
+    const _moment = moment.duration(sec.value);
+    let _seconds = 0;
+    _seconds += _moment.hours() * 3600;
+    _seconds += _moment.minutes() * 60;
+    _seconds += _moment.seconds();
+    return _seconds;
+};
+
 app.setHandler({
     'LAUNCH': function() {
-        console.log('ENTERED HERE');
         this.toIntent('PlayIntent');
     },
     'PlayIntent': function(date, language, seconds) {
-        let self = this;
-        console.log("Date: ", date);
-        console.log("Language", language);
-        console.log("Seconds", seconds);
+        try {
+            let self = this;
+            console.log("Date: ", date);
+            console.log("Language", language);
+            console.log("Seconds", seconds);
+            const _seconds = getSeconds(seconds);
 
-        const languageLocale = language && getLanguageLocale(language.value);
-        console.log('Selected language, ', languageLocale);
-        // date will always be returned
-        return getDate(date, this.user()).then((_date, _timezone) => {
-            const params = {
-                date: _date,
-                language: languageLocale || 'en'
-            };
-            console.log('Params', params);
+            const languageLocale = language && getLanguageLocale(language.value);
+            // date will always be returned
+            return getDate(date, this.user()).then((_date, _timezone) => {
+                const params = {
+                    date: _date,
+                    language: languageLocale || 'en'
+                };
 
-            self.user().data.songToPlay = interpolate(song, params);
-            const calendarDate = getCalendarDate(_date, _timezone);
-            const offsetSeconds = seconds && seconds.value ? seconds.value * 1000 : 0;
+                self.user().data.songToPlay = interpolate(song, params);
+                const calendarDate = getCalendarDate(_date, _timezone);
+                const speechSeconds = _seconds ? moment.duration(_seconds, 'seconds').humanize() : '';
 
-            let speech = '';
-            console.log("lan", language);
-            // if specified language by user is not available
-            if (language && language.value && !languageLocale) {
-                speech += 'Sorry, We currently don\'t support ${language.value} language <break time="0.5s"/>'
-            }
-            speech += `Playing murli for ${calendarDate} `;
-            speech += offsetSeconds ? `from ${offsetSeconds} seconds ` : '';
-            speech += languageLocale ? `in ${language.value} language.` : '';
+                let speech = '';
+                // if specified language by user is not available
+                if (language && language.value && !languageLocale) {
+                    speech += `Sorry, We currently don't support ${language.value} language <break time="0.5s"/>`;
+                }
+                speech += `Playing murli for ${calendarDate} `;
+                speech += speechSeconds ? `from ${speechSeconds}` : '';
+                // handling two cases, one when language value is given and locale is present and one when locale is not present
+                // and using default language
+                speech += languageLocale && language.value ? `in ${language.value} language.` : '';
+                speech += !languageLocale && language.value ? `in english language.` : '';
 
-            self.alexaSkill().
-                audioPlayer().
-                setOffsetInMilliseconds(offsetSeconds).
-                play(self.user().data.songToPlay, 'token').
-                tell(speech);
-        }, (error) => {
-            console.log('Error in getting country and address', error);
-            if (error.code === 'NO_USER_PERMISSION') {
-                this.alexaSkill.showAskForCountryAndPostalCodeCard().
-                    tell('Please grant access to your address from App');
-            }
-        });
+                self.alexaSkill().
+                    audioPlayer().
+                    setOffsetInMilliseconds(_seconds * 1000).
+                    play(self.user().data.songToPlay, 'token').
+                    tell(speech);
+            }, (error) => {
+                console.log('Error in getting country and address', error);
+                if (error.code === 'NO_USER_PERMISSION') {
+                    this.alexaSkill.showAskForCountryAndPostalCodeCard().
+                        tell('Please grant access to your address from App');
+                }
+            });
+        } catch (e) {
+            console.log(e);
+            this.toIntent('Unhandled')
+        }
     },
     'StopIntent': function() {
         this.alexaSkill().audioPlayer().stop();
